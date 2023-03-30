@@ -9,28 +9,28 @@ Vagrant.configure("2") do |config|
         v.cpus = 2
     end
       
-    config.vm.define "k8s-master" do |master|
-        master.vm.box = IMAGE_NAME
-        master.vm.network "private_network", ip: "192.168.50.10"
-        master.vm.hostname = "k8s-master"
-        master.vm.provision "ansible" do |ansible|
-            ansible.playbook = "kubernetes-setup/master-playbook.yml"
+    config.vm.define "k8s-control" do |control|
+        control.vm.box = IMAGE_NAME
+        control.vm.network "private_network", ip: "192.168.50.10"
+        control.vm.hostname = "k8s-control"
+        control.vm.provision "ansible" do |ansible|
+            ansible.playbook = "kubernetes-setup/control-playbook.yml"
             ansible.ask_vault_pass = true
             ansible.extra_vars = {
-                node_ip: "192.168.50.10",
+                worker_ip: "192.168.50.10",
             }
         end
     end
 
     (1..N).each do |i|
-        config.vm.define "node-#{i}" do |node|
-            node.vm.box = IMAGE_NAME
-            node.vm.network "private_network", ip: "192.168.50.#{i + 10}"
-            node.vm.hostname = "node-#{i}"
-            node.vm.provision "ansible" do |ansible|
-                ansible.playbook = "kubernetes-setup/node-playbook.yml"
+        config.vm.define "worker-#{i}" do |worker|
+            worker.vm.box = IMAGE_NAME
+            worker.vm.network "private_network", ip: "192.168.50.#{i + 10}"
+            worker.vm.hostname = "worker-#{i}"
+            worker.vm.provision "ansible" do |ansible|
+                ansible.playbook = "kubernetes-setup/worker-playbook.yml"
                 ansible.extra_vars = {
-                    node_ip: "192.168.50.#{i + 10}",
+                    worker_ip: "192.168.50.#{i + 10}",
                 }
             end
         end

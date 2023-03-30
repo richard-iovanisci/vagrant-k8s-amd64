@@ -87,10 +87,10 @@
   - name: restart containerd
     command: sudo systemctl restart containerd
 
-  - name: Configure node ip
+  - name: Configure worker ip
     lineinfile:
       path: /etc/default/kubelet
-      line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
+      line: KUBELET_EXTRA_ARGS=--node-ip={{ worker_ip }}
       create: yes
 
   - name: Restart kubelet
@@ -99,11 +99,11 @@
       daemon_reload: yes
       state: restarted
 
-# Join the nodes to the Kubernetes cluster using below code
+# Join the workers to the Kubernetes cluster using below code
   - name: Copy the join command to server location
     copy: src=join-command dest=/tmp/join-command.sh mode=0777
 
-  - name: Join the node to cluster
+  - name: Join the worker to cluster
     command: sh /tmp/join-command.sh
 
 # Setup a handler for checking Docker daemon using the below code
