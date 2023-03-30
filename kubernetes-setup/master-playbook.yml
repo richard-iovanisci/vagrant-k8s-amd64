@@ -2,6 +2,13 @@
 - hosts: all
   become: true
   tasks:
+
+  - name: Include encrypted variables
+    include_vars:
+      file: vault-vars.yml
+      name: vaulted
+    no_log: true
+
   - name: Install packages that allow apt to be used over HTTPS
     apt:
       name: "{{ packages }}"
@@ -23,7 +30,7 @@
 
   - name: Add apt repository for stable version
     apt_repository:
-      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
       state: present
 
   - name: Install docker and its dependecies
@@ -33,9 +40,9 @@
       update_cache: yes
     vars:
       packages:
-      - docker-ce 
-      - docker-ce-cli 
-      - containerd.io
+        - docker-ce=5:23.0.1-1~ubuntu.20.04~focal
+        - docker-ce-cli=5:23.0.1-1~ubuntu.20.04~focal
+        - containerd.io=1.6.19-1
     notify:
       - docker status
 
@@ -77,9 +84,9 @@
       update_cache: yes
     vars:
       packages:
-        - kubelet=1.25.5-00
-        - kubeadm=1.25.5-00
-        - kubectl=1.25.5-00  
+        - kubelet=1.26.3-00
+        - kubeadm=1.26.3-00
+        - kubectl=1.26.3-00
 
   # containerd toml refresh
   - name: remove containerd toml 
@@ -129,6 +136,41 @@
   - name: Copy join command to local file
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
     become_user: rich-iovanisci
+
+# Create ArgoCD namespace
+  - name: Create ArgoCD namespace
+    become: false
+    command: kubectl create namespace argocd
+
+# Download ArgoCD manifest
+  - name: Download ArgoCD manifest
+    become: false
+    get_url:
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v2.6.7/manifests/install.yaml
+      dest: /home/vagrant/argo-cd-install.yaml
+
+# Deploy ArgoCD in custom namespace
+  - name: Deploy ArgoCD in custom namespace
+    become: false
+    command: kubectl apply -n argocd -f /home/vagrant/argo-cd-install.yaml
+
+# Setup alias
+  - name: Add kubectl alias for vagrant user
+    lineinfile:
+      path: /home/vagrant/.bashrc
+      line: 'alias k=kubectl'
+      state: present
+    become: false
+
+# tailscale
+  - name: Install Tailscale
+    ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+    become: true
+
+  - name: Authenticate Tailscale
+    become: true
+    shell: tailscale up --ssh --authkey {{ vaulted.tailscale_auth_key }}
+
 
 # Setup a handler for checking Docker daemon using the below code
   handlers:
