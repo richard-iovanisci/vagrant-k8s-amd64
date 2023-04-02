@@ -2,6 +2,7 @@
 - hosts: all
   become: true
   tasks:
+
   - name: Install packages that allow apt to be used over HTTPS
     apt:
       name: "{{ packages }}"
@@ -90,7 +91,7 @@
   - name: Configure worker ip
     lineinfile:
       path: /etc/default/kubelet
-      line: KUBELET_EXTRA_ARGS=--node-ip={{ worker_ip }}
+      line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
       create: yes
 
   - name: Restart kubelet

@@ -3,12 +3,6 @@
   become: true
   tasks:
 
-  - name: Include encrypted variables
-    include_vars:
-      file: vault-vars.yml
-      name: vaulted
-    no_log: true
-
   - name: Install packages that allow apt to be used over HTTPS
     apt:
       name: "{{ packages }}"
@@ -97,7 +91,7 @@
   - name: Configure worker ip
     lineinfile:
       path: /etc/default/kubelet
-      line: KUBELET_EXTRA_ARGS=--node-ip={{ worker_ip }}
+      line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
       create: yes
 
   - name: Restart kubelet
@@ -108,7 +102,7 @@
 
 # Initialize the Kubernetes cluster with kubeadm using the below code (applicable only on control node)
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-control --pod-network-cidr=192.168.0.0/16 --v=6
+    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name control-plane --pod-network-cidr=192.168.0.0/16 --v=6
 
 # Setup the kube config file for the vagrant user to access the Kubernetes cluster using the below code
   - name: Setup kubeconfig for vagrant user
@@ -123,10 +117,10 @@
 ### Install Calico Network
   - name: Install tigera-operator
     become: false
-    command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/tigera-operator.yaml
+    command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
   - name: Install custom-resources
     become: false
-    command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/custom-resources.yaml
+    command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml
 
 # Generate kube join command for joining the node to the Kubernetes cluster and store the command in the file named join-command
   - name: Generate join command
@@ -137,23 +131,6 @@
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
     become_user: rich-iovanisci
 
-# Create ArgoCD namespace
-  - name: Create ArgoCD namespace
-    become: false
-    command: kubectl create namespace argocd
-
-# Download ArgoCD manifest
-  - name: Download ArgoCD manifest
-    become: false
-    get_url:
-      url: https://raw.githubusercontent.com/argoproj/argo-cd/v2.6.7/manifests/install.yaml
-      dest: /home/vagrant/argo-cd-install.yaml
-
-# Deploy ArgoCD in custom namespace
-  - name: Deploy ArgoCD in custom namespace
-    become: false
-    command: kubectl apply -n argocd -f /home/vagrant/argo-cd-install.yaml
-
 # Setup alias
   - name: Add kubectl alias for vagrant user
     lineinfile:
@@ -162,14 +139,15 @@
       state: present
     become: false
 
-# tailscale
-  - name: Install Tailscale
-    ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+  - name: Copy post-init directory to vagrant user's home directory
+    synchronize:
+      src: ../post-init/
+      dest: /home/vagrant/post-init/
+      owner: yes
+      group: yes
+      recursive: yes
     become: true
-
-  - name: Authenticate Tailscale
-    become: true
-    shell: tailscale up --ssh --authkey {{ vaulted.tailscale_auth_key }}
+    become_user: vagrant
 
 
 # Setup a handler for checking Docker daemon using the below code
