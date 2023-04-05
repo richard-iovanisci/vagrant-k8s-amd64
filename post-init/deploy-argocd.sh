@@ -12,6 +12,8 @@ kubectl get svc -n argocd
 #kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
 # for custom base path for UI add the following to the argocd-server deployment
+# kubectl edit deployment argocd-server -n argocd
+# ...
 #- command:
 #        - argocd-server
 #        - --basehref # add this line
