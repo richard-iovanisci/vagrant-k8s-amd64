@@ -114,6 +114,10 @@
 
 # Setup the container networking provider and the network policy engine using the below code
 ## New commands taken from here: https://projectcalico.docs.tigera.io/getting-started/kubernetes/quickstart
+### Remove Taint on Control Plane
+  - name: remove taint control-plane
+    become: false
+    command: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 ### Install Calico Network
   - name: Install tigera-operator
     become: false

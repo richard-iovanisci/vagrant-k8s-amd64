@@ -9,4 +9,10 @@ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort", "por
 kubectl get svc -n argocd
 
 # get password for 'admin' account -- can be changes later to something like 'argoAdmin123$'
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+#kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+
+# for custom base path for UI add the following to the argocd-server deployment
+#- command:
+#        - argocd-server
+#        - --basehref # add this line
+#        - /argo # add this line
