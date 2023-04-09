@@ -153,6 +153,15 @@
     become: true
     become_user: vagrant
 
+  - name: Set post-init files as executable
+    file:
+      path: "/home/vagrant/post-init/{{ item | basename }}"
+      mode: u+x
+    with_fileglob:
+      - "../post-init/*"
+    become: true
+    become_user: vagrant
+
 
 # Setup a handler for checking Docker daemon using the below code
   handlers:
